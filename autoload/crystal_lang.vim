@@ -36,6 +36,9 @@ endfunction
 function! crystal_lang#entrypoint_for(file_path) abort
     let parent_dir = fnamemodify(a:file_path, ':p:h')
     let root_dir = s:find_root_by_spec(parent_dir)
+    echomsg printf('a:file_path: %s', a:file_path)
+    echomsg printf('fnamemodify :p : %s', fnamemodify(a:file_path, ':p'))
+    echomsg printf('fnamemodify :p:h : %s', fnamemodify(a:file_path, ':p:h'))
     if root_dir ==# ''
         " No spec diretory found. No need to make temporary file
         return a:file_path
@@ -57,17 +60,30 @@ function! crystal_lang#entrypoint_for(file_path) abort
     return temp_name
 endfunction
 
+function! s:git_toplevel() abort
+    let cmd = printf("%s","git rev-parse --show-toplevel")
+    try
+        let output = s:run_cmd(cmd)
+        return {'failed': s:P.get_last_status(), 'output': output}
+    catch
+        return 0
+    endtry
+endfunction
+
 function! crystal_lang#tool(name, file, pos, option_str) abort
     let entrypoint = crystal_lang#entrypoint_for(a:file)
+    let git_toplevel = s:git_toplevel()
+    echomsg printf('git_toplevel: %s', git_toplevel)
+    let full_path = fnamemodify(a:file, ':p')
     let cmd = printf(
                 \   '%s tool %s --no-color %s --cursor %s:%d:%d %s',
                 \   g:crystal_compiler_command,
                 \   a:name,
                 \   a:option_str,
-                \   a:file,
+                \   full_path,
                 \   a:pos[1],
                 \   a:pos[2],
-                \   entrypoint
+                \   full_path
                 \ )
 
     try
